@@ -533,6 +533,14 @@ func (proxy *ProxyHttpServer) handleHttpsConnectAccept(ctx *ProxyCtx, host strin
 		}
 	}
 
+	// Only ignore deadline errors if keepalive is configured on both connections.
+	// If either failed to set keepalive, dead peers can't be detected on that side,
+	// so we fall back to deadline-based timeouts on both to prevent goroutine leaks.
+	if !clientConn.IgnoreDeadlineErrors || !targetConn.IgnoreDeadlineErrors {
+		clientConn.IgnoreDeadlineErrors = false
+		targetConn.IgnoreDeadlineErrors = false
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 	cancelCtx, cancel := context.WithCancel(context.Background())
